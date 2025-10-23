@@ -11,7 +11,6 @@ RUN apt-get update && apt-get install -y \
     libsdl2-dev \
     libsdl2-ttf-dev \
     qemu-system-x86 \
-    qemu-system-x86-64 \
     qemu-utils \
     debootstrap \
     grub-pc \
@@ -19,7 +18,9 @@ RUN apt-get update && apt-get install -y \
     kpartx \
     x11-apps \
     xvfb \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    docker.io \
+    docker-compose
 
 # Install Rust
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
