@@ -3,3 +3,7 @@ node_modules
 
 # Rust Environment
 target
+
+# QEMU Images
+*.qcow2
+*.img

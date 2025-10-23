@@ -1,7 +1,7 @@
 # Minimal Debian 13 (Trixie) base for OblivionOS Desktop Development
 FROM debian:trixie-slim
 
-# Install essential packages including SDL2 for Oblivion SDK
+# Install essential packages including SDL2 for Oblivion SDK and QEMU for testing
 RUN apt-get update && apt-get install -y \
     build-essential \
     curl \
@@ -10,6 +10,14 @@ RUN apt-get update && apt-get install -y \
     libssl-dev \
     libsdl2-dev \
     libsdl2-ttf-dev \
+    qemu-system-x86 \
+    qemu-utils \
+    debootstrap \
+    grub-pc \
+    parted \
+    kpartx \
+    x11-apps \
+    xvfb \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Rust
@@ -24,6 +32,29 @@ RUN mkdir -p /opt/rso-framework
 
 # Copy project files
 COPY . /workspace/
+
+# Create QEMU test environment
+RUN mkdir -p /qemu-test && \
+    chmod +x /workspace/create-qemu-image.sh && \
+    chmod +x /workspace/launch-qemu.sh && \
+    chmod +x /workspace/setup-vm.sh
+
+# Create script to run QEMU with GUI in container
+RUN echo '#!/bin/bash\n\
+echo "Starting QEMU GUI test environment..."\n\
+cd /workspace\n\
+\n\
+# Create QEMU image if it doesn\'t exist\n\
+if [ ! -f "debian13-trixie-docker.qcow2" ]; then\n\
+    echo "Creating QEMU image..."\n\
+    ./create-qemu-image.sh\n\
+fi\n\
+\n\
+# Launch QEMU with GUI\n\
+echo "Launching QEMU VM with GUI..."\n\
+echo "Close the QEMU window to exit"\n\
+./launch-qemu.sh\n\
+' > /workspace/run-qemu-gui.sh && chmod +x /workspace/run-qemu-gui.sh
 
 # Default command
 CMD ["/bin/bash"]
