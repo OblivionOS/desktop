@@ -370,3 +370,48 @@ ls -la debian13-trixie-docker.qcow2
 
 **Issue:** Black screen in QEMU window
 **Solution:** The VM may be booting. Wait for the GRUB menu or login screen. Check QEMU logs for errors.
+
+**Issue:** "qemu-system-x86_64: Could not access KVM kernel module"
+**Solution:**
+```bash
+# Run diagnostic first
+./diagnose-qemu.sh
+
+# Use privileged mode
+docker run --privileged ...
+
+# Or disable KVM (slower but works)
+# Edit launch-qemu.sh and remove -enable-kvm
+```
+
+**Issue:** "qemu-system-x86_64: SDL initialization failed"
+**Solution:**
+```bash
+# Check display setup
+echo $DISPLAY
+
+# Test X11 connection
+xeyes
+
+# Use alternative display method
+# Edit launch-qemu.sh to use -vnc :0 instead of -display sdl
+```
+
+**Issue:** VM boots but no GUI inside
+**Solution:** The VM needs GUI setup. After booting, run:
+```bash
+# Inside VM
+sudo apt-get install xfce4 xfce4-goodies
+sudo systemctl set-default graphical.target
+sudo reboot
+```
+
+### Diagnostic Tools
+
+Run the comprehensive diagnostic script:
+
+```bash
+./diagnose-qemu.sh
+```
+
+This will check all components and provide specific recommendations for your setup.

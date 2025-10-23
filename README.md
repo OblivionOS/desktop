@@ -8,7 +8,11 @@ This repository provides a minimal Debian 13 (Trixie) base for developing the Ob
 ### Building the Docker Image
 
 ```bash
+# Build the Docker image
 docker build -t oblivion-desktop .
+
+# If you encounter QEMU issues, rebuild without cache
+docker build --no-cache -t oblivion-desktop .
 ```
 
 ### Running the Development Environment
@@ -148,6 +152,9 @@ sudo umount /mnt/qemu-image
 - `./run-qemu-docker.sh` - Run QEMU GUI test in Docker (creates new image)
 - `./run-qemu-with-image.sh <image.qcow2>` - Run QEMU with existing QCOW2 image
 - `./manage-qemu-images.sh` - Manage QCOW2 images (create, resize, backup, etc.)
+- `./diagnose-qemu.sh` - Diagnose QEMU setup issues
+- `./test-qemu.sh` - Quick QEMU functionality test
+- `./fix-qemu.sh` - Fix QEMU installation issues
 
 ## Documentation
 
@@ -176,3 +183,67 @@ Before running QEMU, test your GUI setup:
 ```
 
 This will verify X11, SDL2, QEMU, and Docker are properly configured.
+
+## Troubleshooting QEMU Issues
+
+If you encounter QEMU errors, run the diagnostic tools:
+
+```bash
+# Comprehensive diagnostic
+./diagnose-qemu.sh
+
+# Quick functionality test
+./test-qemu.sh
+```
+
+The diagnostic script checks:
+- QEMU installation
+- KVM access
+- Display configuration
+- Image availability
+- Memory requirements
+
+The test script attempts to run QEMU and shows exact error messages.
+
+### Common QEMU Issues
+
+**"qemu-system-x86_64: Could not access KVM kernel module"**
+```bash
+# Solution: Run Docker with privileged access
+docker run --privileged ...
+# Or on host: sudo chmod 666 /dev/kvm
+```
+
+**"qemu-system-x86_64: SDL initialization failed"**
+```bash
+# Solution: Set DISPLAY variable
+export DISPLAY=:0
+# Or use VNC mode for remote access
+```
+
+**"qemu-system-x86_64: Image not found"**
+```bash
+# Solution: Create image first
+sudo ./create-qemu-image.sh
+# Or specify correct path
+./run-qemu-with-image.sh /path/to/image.qcow2
+```
+
+**"qemu-system-x86_64: command not found"**
+```bash
+# Quick fix: Run the fix script
+./fix-qemu.sh
+
+# Or rebuild Docker image
+docker build --no-cache -t oblivion-desktop .
+
+# Or install manually in running container
+docker run -it --rm oblivion-desktop bash
+apt-get update && apt-get install qemu-system-x86-64
+```
+
+**"qemu-system-x86_64: Not enough memory"**
+```bash
+# Solution: Reduce memory allocation in launch-qemu.sh
+# Change MEMORY="4G" to MEMORY="2G"
+```
