@@ -19,8 +19,7 @@ RUN apt-get update && apt-get install -y \
     x11-apps \
     xvfb \
     && rm -rf /var/lib/apt/lists/* \
-    docker.io \
-    docker-compose
+    docker.io && docker-compose
 
 # Install Rust
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
