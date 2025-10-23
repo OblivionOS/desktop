@@ -4,4 +4,4 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-# Add dependencies here as the .rso framework develops
+oblivion_ui = { git = "https://github.com/skygenesisenterprise/oblivion-sdk", branch = "main" }
