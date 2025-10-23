@@ -37,6 +37,8 @@ brew install qemu
 
 ## Creating the VM Image
 
+### Using the Automated Script
+
 Run the image creation script as root:
 
 ```bash
@@ -51,6 +53,24 @@ This will create:
 - VNC and noVNC for remote access
 
 The process takes approximately 10-15 minutes depending on your internet connection.
+
+### Using the Management Script
+
+For more control over image creation:
+
+```bash
+# Create default 10GB image
+./manage-qemu-images.sh create
+
+# Create custom size image
+./manage-qemu-images.sh create 20G
+
+# List all images
+./manage-qemu-images.sh list
+
+# Get image information
+./manage-qemu-images.sh info debian13-trixie-docker.qcow2
+```
 
 ## Launching the VM
 
@@ -276,22 +296,47 @@ This is simpler but requires X11 on the host system.
 
 The easiest way to test with GUI is using the Docker-based QEMU:
 
+### Running with New Image
+
 ```bash
-# Run QEMU with GUI window directly in Docker
+# Run QEMU with GUI window directly in Docker (creates new image)
 ./run-qemu-docker.sh
 ```
 
-This method:
+### Running with Existing Image
+
+```bash
+# Run QEMU with your own QCOW2 image
+./run-qemu-with-image.sh /path/to/your/image.qcow2
+```
+
+These methods:
 - Runs QEMU inside a Docker container
 - Displays the VM window directly on your desktop
 - Requires X11 forwarding
 - Works on Linux, macOS, and Windows with WSL2
+- Supports any QCOW2 image with Debian/Ubuntu-based systems
 
 ### Requirements for Docker QEMU GUI
 
 - X11 server running on host
 - Docker with `--privileged` flag
 - Access to `/dev/dri` and `/dev/kvm` devices
+- QCOW2 image (created or existing)
+
+### Image Management in Docker
+
+You can manage images from within the Docker container:
+
+```bash
+# Run container and access management tools
+docker run -it --rm -v $(pwd):/workspace oblivion-desktop bash
+
+# Inside container
+cd /workspace
+./manage-qemu-images.sh list
+./manage-qemu-images.sh create 15G
+```
 
 ### Troubleshooting Docker GUI
 
@@ -312,5 +357,16 @@ export DISPLAY=$(cat /etc/resolv.conf | grep nameserver | awk '{print $2}'):0
 **Issue:** "Permission denied" for devices
 **Solution:** Run with `--privileged` flag (already included in script)
 
+**Issue:** "QEMU image not found"
+**Solution:** Ensure the image path is correct and accessible:
+
+```bash
+# Check if image exists
+ls -la debian13-trixie-docker.qcow2
+
+# Use absolute path
+./run-qemu-with-image.sh $(pwd)/debian13-trixie-docker.qcow2
+```
+
 **Issue:** Black screen in QEMU window
-**Solution:** The VM may be booting. Wait for the GRUB menu or login screen.
+**Solution:** The VM may be booting. Wait for the GRUB menu or login screen. Check QEMU logs for errors.

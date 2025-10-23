@@ -1,7 +1,7 @@
 #!/bin/bash
 # Script to launch QEMU VM with Debian 13 and Docker for Oblivion Desktop testing
 
-IMAGE_FILE="debian13-trixie-docker.qcow2"
+IMAGE_FILE="${1:-debian13-trixie-docker.qcow2}"
 MEMORY="4G"
 CPUS="2"
 
@@ -29,7 +29,8 @@ fi
 
 # Check if image exists
 if [ ! -f "$IMAGE_FILE" ]; then
-    echo "QEMU image not found. Run create-qemu-image.sh first."
+    echo "QEMU image not found: $IMAGE_FILE"
+    echo "Run create-qemu-image.sh first or specify correct path."
     exit 1
 fi
 
