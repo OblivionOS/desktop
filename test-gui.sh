@@ -47,6 +47,14 @@ else
     echo "GCC or pkg-config not available"
 fi
 
+# Test Wayland
+echo "Testing Wayland..."
+if pkg-config --exists wayland-client wayland-server; then
+    echo "Wayland libraries available"
+else
+    echo "Wayland libraries not available"
+fi
+
 # Test QEMU
 echo "Testing QEMU..."
 if command -v qemu-system-x86_64 &> /dev/null; then

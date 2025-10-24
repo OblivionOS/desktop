@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=OblivionOS
+Comment=OblivionOS Desktop Environment
+Exec=/usr/local/bin/oblivion-session
+Type=Application
+DesktopNames=OblivionOS
+Keywords=oblivion;desktop;environment;

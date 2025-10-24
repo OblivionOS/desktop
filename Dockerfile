@@ -1,7 +1,7 @@
 # Minimal Debian 13 (Trixie) base for OblivionOS Desktop Development
 FROM debian:trixie-slim
 
-# Install essential packages including SDL2 for Oblivion SDK and QEMU for testing
+# Install essential packages including SDL2 for Oblivion SDK, Wayland for compositor, and QEMU for testing
 RUN apt-get update && apt-get install -y \
     build-essential \
     curl \
@@ -10,6 +10,15 @@ RUN apt-get update && apt-get install -y \
     libssl-dev \
     libsdl2-dev \
     libsdl2-ttf-dev \
+    libwayland-dev \
+    libxkbcommon-dev \
+    libegl1-mesa-dev \
+    libgles2-mesa-dev \
+    libseat-dev \
+    libinput-dev \
+    libudev-dev \
+    libdbus-1-dev \
+    libsystemd-dev \
     qemu-system-x86 \
     qemu-utils \
     debootstrap \
@@ -49,6 +58,13 @@ RUN echo '#!/bin/bash\n\
 echo "Starting QEMU GUI test environment..."\n\
 cd /workspace\n\
 \n\
+# Set up X11 authentication if needed\n\
+if [ -n "$XAUTHORITY" ] && [ -f "$XAUTHORITY" ]; then\n\
+    echo "Using X11 authentication from host"\n\
+else\n\
+    echo "No X11 authentication found, trying direct display"\n\
+fi\n\
+\n\
 # Check for QEMU image in mounted volume or create if needed\n\
 if [ -f "/qemu-images/debian13-trixie-docker.qcow2" ]; then\n\
     echo "Using QEMU image from /qemu-images/"\n\
@@ -59,8 +75,14 @@ elif [ -f "debian13-trixie-docker.qcow2" ]; then\n\
 else\n\
     echo "No QEMU image found. Creating one..."\n\
     echo "Note: This will create a 10GB image and may take several minutes"\n\
-    ./create-qemu-image.sh\n\
-    IMAGE_PATH="debian13-trixie-docker.qcow2"\n\
+    if [ -w "/qemu-images" ]; then\n\
+        ./create-qemu-image.sh\n\
+        IMAGE_PATH="debian13-trixie-docker.qcow2"\n\
+    else\n\
+        echo "Cannot create image: /qemu-images not writable"\n\
+        echo "Please run create-qemu-image.sh on host first"\n\
+        exit 1\n\
+    fi\n\
 fi\n\
 \n\
 # Verify image exists\n\
@@ -73,6 +95,7 @@ fi\n\
 # Launch QEMU with GUI\n\
 echo "Launching QEMU VM with GUI..."\n\
 echo "Image: $IMAGE_PATH"\n\
+echo "Display: $DISPLAY"\n\
 echo "Close the QEMU window to exit"\n\
 ./launch-qemu.sh "$IMAGE_PATH"\n\
 ' > /workspace/run-qemu-gui.sh && chmod +x /workspace/run-qemu-gui.sh

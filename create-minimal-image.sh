@@ -1,13 +1,13 @@
 #!/bin/bash
-# Script to create a Debian 13 (Trixie) QEMU image with Docker pre-installed
+# Script to create a minimal Debian system with OblivionOS pre-installed
 
 set -e
 
-IMAGE_SIZE="10G"
 IMAGE_FILE="debian13-trixie-docker.qcow2"
-MOUNT_POINT="/tmp/debian-chroot"
+MOUNT_POINT="/tmp/oblivion-chroot"
+SIZE="5368709120"  # 5GB exactly
 
-echo "Creating Debian 13 Trixie QEMU image with Docker..."
+echo "Creating minimal Debian system with OblivionOS..."
 
 # Check if running as root
 if [[ $EUID -ne 0 ]]; then
@@ -19,24 +19,42 @@ fi
 apt-get update
 apt-get install -y debootstrap qemu-utils
 
-# Create empty qcow2 image
-qemu-img create -f qcow2 "$IMAGE_FILE" "$IMAGE_SIZE"
+# Create qcow2 image if it doesn't exist
+if [ ! -f "$IMAGE_FILE" ]; then
+    echo "Creating QEMU image..."
+    rm -f "$IMAGE_FILE"
+    qemu-img create -f qcow2 "$IMAGE_FILE" "$SIZE"
+fi
 
-# Set up loop device and format
+# Set up loop device
 LOOP_DEVICE=$(losetup -f)
 losetup "$LOOP_DEVICE" "$IMAGE_FILE"
 
 # Create partition table and filesystem
-parted -s "$LOOP_DEVICE" mklabel msdos
-parted -s "$LOOP_DEVICE" mkpart primary ext4 1MiB 100%
+echo "Creating partition table..."
+fdisk "$LOOP_DEVICE" << EOF
+o
+n
+p
+1
+
+
+w
+EOF
+
+# Wait for partition to be recognized
+sleep 2
+partprobe "$LOOP_DEVICE"
+
 mkfs.ext4 "${LOOP_DEVICE}p1"
 
 # Mount the filesystem
 mkdir -p "$MOUNT_POINT"
 mount "${LOOP_DEVICE}p1" "$MOUNT_POINT"
 
-# Bootstrap Debian 13 Trixie
-debootstrap --arch=amd64 trixie "$MOUNT_POINT" http://deb.debian.org/debian/
+# Bootstrap minimal Debian
+echo "Bootstrapping Debian..."
+debootstrap --variant=minbase trixie "$MOUNT_POINT" http://deb.debian.org/debian/
 
 # Configure the chroot environment
 mount -t proc proc "$MOUNT_POINT/proc"
@@ -48,15 +66,15 @@ mount -t devpts devpts "$MOUNT_POINT/dev/pts"
 # Copy DNS configuration
 cp /etc/resolv.conf "$MOUNT_POINT/etc/resolv.conf"
 
-# Chroot and configure the system
+# Configure the system
 cat > "$MOUNT_POINT/configure.sh" << 'EOF'
 #!/bin/bash
 set -e
 
 # Set hostname
-echo "oblivion-desktop-vm" > /etc/hostname
+echo "oblivion-os" > /etc/hostname
 
-# Configure apt sources
+# Configure apt
 cat > /etc/apt/sources.list << EOL
 deb http://deb.debian.org/debian trixie main contrib non-free non-free-firmware
 deb http://deb.debian.org/debian trixie-updates main contrib non-free non-free-firmware
@@ -66,79 +84,56 @@ EOL
 # Update package list
 apt-get update
 
-# Install basic packages
+# Install minimal packages
 apt-get install -y \
     linux-image-amd64 \
-    grub-pc \
     systemd \
     locales \
     sudo \
     curl \
-    wget \
     vim \
     openssh-server \
     network-manager \
     xorg \
+    lightdm \
     xfce4 \
     xfce4-goodies \
-    tightvncserver \
-    novnc \
-    websockify \
+    build-essential \
+    pkg-config \
+    libssl-dev \
+    libsdl2-dev \
+    libsdl2-ttf-dev \
     libwayland-dev \
     libxkbcommon-dev \
     libegl1-mesa-dev \
-    libgles2-mesa-dev \
-    libseat-dev \
-    libinput-dev \
-    libudev-dev \
-    libdbus-1-dev \
-    libsystemd-dev
+    libgles2-mesa-dev
 
 # Configure locale
 echo "en_US.UTF-8 UTF-8" >> /etc/locale.gen
 locale-gen
 echo "LANG=en_US.UTF-8" > /etc/default/locale
 
-# Install Docker
-curl -fsSL https://get.docker.com -o get-docker.sh
-sh get-docker.sh
-usermod -aG docker developer
+# Install Rust
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+export PATH="$HOME/.cargo/bin:$PATH"
 
-# Create developer user
-useradd -m -s /bin/bash developer
-echo "developer:developer" | chpasswd
-usermod -aG sudo developer
-usermod -aG docker developer
+# Create oblivion user
+useradd -m -s /bin/bash oblivion
+echo "oblivion:oblivion" | chpasswd
+usermod -aG sudo oblivion
+usermod -aG video oblivion
 
 # Configure sudo
-echo "developer ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
-
-# Install Rust and development dependencies
-su - developer -c "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y"
-apt-get install -y \
-    build-essential \
-    pkg-config \
-    libssl-dev \
-    libsdl2-dev \
-    libsdl2-ttf-dev \
-    git \
-    libwayland-dev \
-    libxkbcommon-dev \
-    libegl1-mesa-dev \
-    libgles2-mesa-dev \
-    libseat-dev \
-    libinput-dev \
-    libudev-dev \
-    libdbus-1-dev \
-    libsystemd-dev
+echo "oblivion ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
 # Configure GRUB
-grub-install --target=i386-pc "$LOOP_DEVICE"
+grub-install --target=i386-pc /dev/loop0
 update-grub
 
 # Enable services
 systemctl enable ssh
-systemctl enable docker
+systemctl enable lightdm
+systemctl enable network-manager
 
 # Clean up
 apt-get clean
@@ -147,6 +142,13 @@ EOF
 
 chmod +x "$MOUNT_POINT/configure.sh"
 chroot "$MOUNT_POINT" /configure.sh
+
+# Copy OblivionOS components (assuming they're built)
+if [ -d "/workspace/target/release" ]; then
+    cp /workspace/target/release/oblivion-* "$MOUNT_POINT/usr/local/bin/" 2>/dev/null || true
+    cp /workspace/oblivion-session.service "$MOUNT_POINT/etc/systemd/system/" 2>/dev/null || true
+    cp /workspace/oblivion.desktop "$MOUNT_POINT/usr/share/xsessions/" 2>/dev/null || true
+fi
 
 # Clean up chroot
 rm "$MOUNT_POINT/configure.sh"
@@ -159,5 +161,5 @@ umount "$MOUNT_POINT"
 # Clean up loop device
 losetup -d "$LOOP_DEVICE"
 
-echo "Debian 13 Trixie QEMU image created: $IMAGE_FILE"
-echo "Default login: developer/developer"
+echo "Minimal Debian system with OblivionOS created: $IMAGE_FILE"
+echo "Default login: oblivion/oblivion"

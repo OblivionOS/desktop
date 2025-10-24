@@ -1,0 +1,9 @@
+[package]
+name = "oblivion-comp"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# smithay = { workspace = true }
+# wayland-server = { workspace = true }
+tokio = { version = "1.0", features = ["full"] }

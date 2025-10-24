@@ -1,0 +1,12 @@
+# Minimal Docker image for building OblivionOS
+FROM scratch
+
+# Add minimal root filesystem
+ADD oblivion-rootfs.tar.gz /
+
+# Set up basic environment
+ENV PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin
+ENV HOME=/root
+
+# Default command
+CMD ["/init"]
