@@ -28,22 +28,26 @@ cd /workspace/oblivion-rootfs
 find . | cpio -H newc -o | gzip > ../oblivion-initramfs.img
 "
 
-# Download/build kernel (simplified - using prebuilt for now)
-echo "🌱 Setting up kernel..."
+# Build kernel from submodule
+echo "🌱 Building kernel from submodule..."
 if [ ! -f "oblivion-kernel" ]; then
-    # For now, use a simple kernel download
-    # In production, we'd build our own minimal kernel
-    echo "⚠️ Using generic kernel - customize for production"
-    # Copy from system or download
-    cp /boot/vmlinuz-* oblivion-kernel 2>/dev/null || \
-    wget -O oblivion-kernel "https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.1.0.tar.xz" && \
-    tar -xf linux-6.1.0.tar.xz && \
-    cd linux-6.1.0 && \
-    make defconfig && \
-    make -j$(nproc) bzImage && \
-    cp arch/x86/boot/bzImage ../oblivion-kernel && \
-    cd .. && \
-    rm -rf linux-6.1.0*
+    if [ -d "kernel" ] && [ -f "kernel/Makefile" ]; then
+        echo "Building kernel from submodule..."
+        cd kernel
+        # Use existing config or make defconfig
+        if [ -f ".config" ]; then
+            echo "Using existing kernel config"
+        else
+            make defconfig
+        fi
+        make -j$(nproc) bzImage
+        cp arch/x86/boot/bzImage ../oblivion-kernel
+        cd ..
+        echo "Kernel built from submodule"
+    else
+        echo "⚠️ Kernel submodule not available, using system kernel"
+        cp /boot/vmlinuz-* oblivion-kernel 2>/dev/null || echo "No system kernel found"
+    fi
 fi
 
 # Create QEMU disk image

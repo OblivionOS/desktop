@@ -51,15 +51,22 @@ EOF
 cat > "$ROOTFS_DIR"/init << 'EOF'
 #!/bin/sh
 echo "OblivionOS Starting..."
+echo "Mounting filesystems..."
 
 # Mount filesystems
 mount -t proc proc /proc
 mount -t sysfs sysfs /sys
 mount -t devpts devpts /dev/pts
 
+echo "Filesystems mounted."
+echo "Setting up environment..."
+
 # Basic setup
 export PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin
 export HOME=/root
+
+# Create runtime directories
+mkdir -p /var/log /var/run /tmp
 
 # Start OblivionOS
 echo "Launching OblivionOS..."
@@ -80,8 +87,26 @@ apt-get install -y --no-install-recommends \
 apt-get clean
 "
 
+# Install kernel headers from the submodule
+echo "🌱 Installing kernel headers from submodule..."
+if [ -d "./kernel" ]; then
+    mkdir -p "$ROOTFS_DIR/usr/src/linux-headers"
+    cp -r ./kernel/include "$ROOTFS_DIR/usr/src/linux-headers/" 2>/dev/null || true
+    cp ./kernel/.config "$ROOTFS_DIR/usr/src/linux-headers/.config" 2>/dev/null || true
+    cp ./kernel/Makefile "$ROOTFS_DIR/usr/src/linux-headers/Makefile" 2>/dev/null || true
+    echo "Kernel headers installed from submodule at /usr/src/linux-headers"
+else
+    echo "Warning: kernel submodule not found, installing generic headers"
+    chroot "$ROOTFS_DIR" /bin/sh -c "
+    apt-get update
+    apt-get install -y --no-install-recommends linux-headers-amd64
+    apt-get clean
+    "
+fi
+
 # Create directories
 mkdir -p "$ROOTFS_DIR"/usr/local/bin
 mkdir -p "$ROOTFS_DIR"/home/oblivion
+mkdir -p "$ROOTFS_DIR"/var/log
 
 echo "✅ Root filesystem created in $ROOTFS_DIR"

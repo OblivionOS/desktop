@@ -7,6 +7,7 @@ use std::cell::RefCell;
 
 fn main() -> Result<(), String> {
     println!("OblivionOS Panel starting...");
+    println!("Initializing SDL window...");
 
     let redraw_trigger = Rc::new(RefCell::new(false));
     let title_state = State::new("OblivionOS".to_string(), Rc::clone(&redraw_trigger));

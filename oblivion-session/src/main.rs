@@ -1,10 +1,45 @@
 
 use tokio::process::Command as TokioCommand;
 use anyhow::{Result, Context};
+use std::process::Stdio;
+use tokio::fs::File;
+use tokio::io::AsyncWriteExt;
+
+async fn start_logging_service() -> Result<()> {
+    println!("Starting logging service...");
+    // Create log directory if it doesn't exist
+    tokio::fs::create_dir_all("/var/log").await
+        .context("Failed to create log directory")?;
+
+    let mut log_file = File::create("/var/log/oblivion.log").await
+        .context("Failed to create log file")?;
+
+    log_file.write_all(b"OblivionOS logging service started\n").await?;
+    println!("Logging service initialized at /var/log/oblivion.log");
+    Ok(())
+}
+
+async fn start_network_service() -> Result<()> {
+    println!("Starting network service...");
+    // Simple network setup (placeholder)
+    println!("Network service: configuring interfaces...");
+    // In a real system, this would configure networking
+    println!("Network service ready");
+    Ok(())
+}
 
 #[tokio::main]
 async fn main() -> Result<()> {
     println!("OblivionOS Session Manager starting...");
+
+    // Start system services
+    if let Err(e) = start_logging_service().await {
+        println!("Warning: Failed to start logging service: {}", e);
+    }
+
+    if let Err(e) = start_network_service().await {
+        println!("Warning: Failed to start network service: {}", e);
+    }
 
     // Set environment variables for Wayland
     std::env::set_var("WAYLAND_DISPLAY", "wayland-0");

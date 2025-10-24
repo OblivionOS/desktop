@@ -7,3 +7,5 @@ target
 # QEMU Images
 *.qcow2
 *.img
+
+oblivion-rootfs
