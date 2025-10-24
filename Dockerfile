@@ -20,7 +20,6 @@ RUN apt-get update && apt-get install -y \
     xvfb \
     docker.io \
     docker-compose \
-    tailscale \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Rust
