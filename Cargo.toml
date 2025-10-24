@@ -5,6 +5,7 @@ members = [
     "oblivion-panel",
     "oblivion-session",
 ]
+resolver = "2"
 
 [workspace.dependencies]
 oblivion_ui = { git = "https://github.com/skygenesisenterprise/oblivion-sdk", branch = "main" }
